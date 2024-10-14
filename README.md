@@ -34,20 +34,27 @@
 Для получения информации о текущем пользователе:
 
     ```bash
+
     python vk_user_info.py
+
     ```
 Для получения информации о конкретном пользователе:
 
     ```bash
+
     python vk_user_info.py --user_id <user_id>
+
     ```
 Для указания пути к файлу результата:
 
     ```bash
+
     python vk_user_info.py --result_file <path_to_result_file>
+    
     ```
 
 ## Формат результата
+```json
 
 {
     "user_id": 487197074,
@@ -96,3 +103,5 @@
         }
     ]
 }
+
+```
