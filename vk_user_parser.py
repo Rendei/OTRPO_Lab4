@@ -21,8 +21,8 @@ def get_vk_user_info(vk_api, neo4j_handler, user_id, level=2):
     user_response = requests.get(user_info_url, params=user_info_params)
     user_data = user_response.json()    
 
-    if 'response' not in user_data:
-        logger.error(f"Ошибка получения информации о пользователе: {user_response}")
+    if len(user_data['response']) == 0:
+        logger.error(f"Ошибка получения информации о пользователе, ответ пустой: {user_response.text}")
         return
 
     user = user_data['response'][0]
@@ -34,6 +34,7 @@ def get_vk_user_info(vk_api, neo4j_handler, user_id, level=2):
         'sex': user.get('sex', ''),
         'city': user.get('city', {}).get('title', '') if user.get('city') else ''
     }
+    logger.info(f"Текущий пользователь: {user_dict}")
     neo4j_handler.create_user(user_dict)
 
     followers_url = f'https://api.vk.com/method/users.getFollowers'
@@ -60,11 +61,16 @@ def get_vk_user_info(vk_api, neo4j_handler, user_id, level=2):
     groups = subscriptions_data.get('response', {}).get('items', [])
 
     for follower in followers:
+        logger.info(f"Фолловеры пользователя {user_id}: {follower}")
         neo4j_handler.create_follow_relationship(follower, user['id'])
         if level > 1:
             get_vk_user_info(vk_api, neo4j_handler, follower, level - 1)
 
     for group in groups:
+        # Некоторые страницы считаются группами, поэтому их нужно пропустить
+        if group['type'] == 'profile':
+            continue
+
         group_data = {
             'id': group['id'],
             'name': group['name'],
