@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Функция для загрузки токена и других параметров из конфигурации
-def load_config(config_file='OTRPO_Lab4/config.json'):
+def load_config(config_file='config.json'):
     with open(config_file, 'r', encoding='utf-8') as f:
         config = json.load(f)
     return config
@@ -30,8 +30,21 @@ if __name__ == "__main__":
     if args.query:
         # Выполняем запрос к Neo4j
         result = neo4j_handler.query_neo4j(args.query)
-        for record in result:
-            print(record)
+        
+        if args.query in ['users_count', 'groups_count']:
+            print(f"Результат для {args.query}: {result[0]['count']}")
+        elif args.query == 'top_users_by_followers':
+            print("Топ-5 пользователей по количеству фоллоуеров:")
+            for record in result:
+                print(f"ID пользователя: {record['u.id']}, Имя: {record['u.name']}, Количество фоллоуеров: {record['followers_count']}")
+        elif args.query == 'top_groups_by_subscribers':
+            print("Топ-5 групп по количеству подписчиков:")
+            for record in result:
+                print(f"ID группы: {record['g.id']}, Название: {record['g.name']}, Количество подписчиков: {record['subscribers_count']}")
+        elif args.query == 'mutual_followers':
+            print("Пользователи, которые являются фоллоуерами друг друга:")
+            for record in result:
+                print(f"ID пользователя 1: {record['u1.id']}, ID пользователя 2: {record['u2.id']}")
     else:
         # Получаем данные о пользователе и сохраняем в Neo4j
         get_vk_user_info(config, neo4j_handler, args.user_id)
