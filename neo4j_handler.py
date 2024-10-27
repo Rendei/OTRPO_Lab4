@@ -13,7 +13,7 @@ class Neo4jHandler:
     def run_query(self, query, parameters=None):
         with self.driver.session() as session:
             result = session.run(query, parameters)
-            return result
+            return [record for record in result]
 
     def create_user(self, user_data):
         query = """
@@ -31,14 +31,16 @@ class Neo4jHandler:
 
     def create_follow_relationship(self, user_from, user_to):
         query = """
-        MATCH (u1:User {id: $from}), (u2:User {id: $to})
+        MATCH (u1:User {id: $from})
+        MATCH (u2:User {id: $to})
         MERGE (u1)-[:FOLLOWS]->(u2)
         """
         self.run_query(query, {'from': user_from, 'to': user_to})
 
     def create_subscribe_relationship(self, user, group):
         query = """
-        MATCH (u:User {id: $user}), (g:Group {id: $group})
+        MATCH (u:User {id: $user})
+        MATCH  (g:Group {id: $group})
         MERGE (u)-[:SUBSCRIBED]->(g)
         """
         self.run_query(query, {'user': user, 'group': group})
@@ -57,10 +59,16 @@ class Neo4jHandler:
                 RETURN g.id, g.name, COUNT(*) AS subscribers_count
                 ORDER BY subscribers_count DESC LIMIT 5
             """,
+            # По сути данное условие никогда не выполнится, т.к в таком случае юзеры - друзья 
             'mutual_followers': """
-                MATCH (u1:User)-[:FOLLOWS]->(u2:User)-[:FOLLOWS]->(u1)
+                MATCH (u1:User)-[:FOLLOWS]->(u2:User)-[:FOLLOWS]->(u1) 
                 RETURN u1.id, u2.id
             """
         }
-        result = self.run_query(queries[query_type])
-        return result
+
+        try:
+            result = self.run_query(queries[query_type])
+            return result
+        except KeyError as ke:
+            logger.error(f"Запроса {query_type} не существует")  
+            return []      
