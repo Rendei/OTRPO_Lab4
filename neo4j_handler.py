@@ -45,6 +45,29 @@ class Neo4jHandler:
         """
         self.run_query(query, {'user': user, 'group': group})
 
+    def top_common_subscriptions(self, user_id):
+        query = """
+        MATCH (u:User {id: $user_id})-[:Subscribe]->(g:Group)<-[:Subscribe]-(other:User)
+        RETURN other.id AS user_id, count(g) AS common_groups
+        ORDER BY common_groups DESC
+        LIMIT 5
+        """
+        with self.driver.session() as session:
+            result = session.run(query, user_id=user_id)
+            return result.data()
+
+    # Запрос 2: Топ-группы, в которых состоит больше всего друзей пользователя
+    def top_groups_by_friends(self, user_id):
+        query = """
+        MATCH (u:User {id: $user_id})-[:Follow]->(friend:User)-[:Subscribe]->(g:Group)
+        RETURN g.id AS group_id, g.name AS group_name, count(friend) AS friends_in_group
+        ORDER BY friends_in_group DESC
+        LIMIT 5
+        """
+        with self.driver.session() as session:
+            result = session.run(query, user_id=user_id)
+            return result.data()
+            
     def query_neo4j(self, query_type):
         queries = {
             'users_count': "MATCH (u:User) RETURN COUNT(u) AS count",
