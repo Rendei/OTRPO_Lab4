@@ -4,9 +4,6 @@ import logging
 from neo4j_handler import Neo4jHandler
 from vk_user_parser import get_vk_user_info
 
-# Настройка логирования
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Функция для загрузки токена и других параметров из конфигурации
 def load_config(config_file='config.json'):
@@ -14,13 +11,32 @@ def load_config(config_file='config.json'):
         config = json.load(f)
     return config
 
+
+def setup_logging(level, log_file, output):
+    # Конфигурируем формат логов
+    log_format = '%(asctime)s - %(levelname)s - %(message)s'
+        
+    if output == 'file' and log_file:
+        logging.basicConfig(level=level, format=log_format, filename=log_file, filemode='a')
+    else:
+        logging.basicConfig(level=level, format=log_format)
+
+    logger = logging.getLogger(__name__)
+    logger.info("Настройка логирования завершена.")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Скрипт для получения данных ВК и работы с Neo4j')
     parser.add_argument('--user_id', type=str, help='Идентификатор пользователя ВК')
     parser.add_argument('--query', type=str, help='Тип запроса к Neo4j: users_count, groups_count, top_users_by_followers, top_groups_by_subscribers, mutual_followers')
 
+    parser.add_argument('--log_level', type=str, default='INFO', choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], help='Уровень логирования')
+    parser.add_argument('--log_file', type=str, help='Файл для записи логов (если выбран вывод в файл)')
+    parser.add_argument('--log_output', type=str, default='console', choices=['console', 'file'], help='Куда выводить логи: в консоль или в файл')
+
     args = parser.parse_args()
 
+    setup_logging(args.log_level.upper(), args.log_file, args.log_output)
     # Загружаем конфигурацию
     config = load_config()
 
